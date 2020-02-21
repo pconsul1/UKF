@@ -127,7 +127,7 @@ def estimate_rot(data_num=1):
     # print(imu_data_new[0][:20, :3])
     # imu_data_new[0][:,0] = -imu_data_new[0][:,0]
     # imu_data_new[0][:,1] = -imu_data_new[0][:,1]
-    # print(imu_data_new[0][:20, :3])
+    print(imu_data_new[0][:20, 3:6])
     delta_ts = []
     for i, timer in enumerate(ts_data):
         ts = np.diff(timer, axis = 0)

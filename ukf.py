@@ -101,17 +101,17 @@ def process_model(w_i, x_i_prev, delta_ts):
     w_prev_est = x_i_prev[4:7]
     quat_prev_est = Quaternion(x_i_prev[0], x_i_prev[1:4], "value")
     
-    print('w prev est ', w_prev_est)
+    # print('w prev est ', w_prev_est)
     y_i = np.zeros((w_i.shape[0], w_i.shape[1]+1))
     for i in range(w_i.shape[0]):
-        print('w_i %d '%i, w_i[i])
+        # print('w_i %d '%i, w_i[i])
         # print('norm of sigmal points - ', np.linalg.norm(w_i[i][0:3]))
         w_i_quat = rot_to_quat(w_i[i][0:3])
         
         #make x_i point
         x_i_quat = quat_prev_est.multiply(w_i_quat)
         x_i_w = w_prev_est + w_i[i][3:6]
-        print('adding angular velocities ', w_prev_est, w_i[i][3:6])
+        # print('adding angular velocities ', w_prev_est, w_i[i][3:6])
         print('y %d w part  \n'%i, x_i_w)
         x_i_w_norm = np.linalg.norm(x_i_w)
         angle = x_i_w_norm * delta_ts
@@ -275,6 +275,7 @@ def UKF(data, delta_ts, tuneQ = 5):
     # print(w_i.shape)
     ### initializing the state quaternion
     w_xyz = np.array([0.2,0.2,0.2])
+    # w_xyz = np.array([0.004, 0.003, 0.003])
     w_xyz_norm = np.linalg.norm(w_xyz)
     angle_w = delta_ts[0] * w_xyz_norm
     axis_w = w_xyz/w_xyz_norm
@@ -285,7 +286,7 @@ def UKF(data, delta_ts, tuneQ = 5):
     prev_qk = Quaternion(1, [0,0,0]).unit_quaternion()
     x_i_prev = np.concatenate([np.array(prev_qk.quaternion), w_xyz])
     print('x_i_prev ', x_i_prev)
-    for i in range(1,5):
+    for i in range(1,20):
     # for i in range(1,data.shape[0]):
         #### PREIDCTION #####
         w_i = sigma_pts(P, Q)
@@ -306,10 +307,15 @@ def UKF(data, delta_ts, tuneQ = 5):
         steps_logger.append(steps)
         # cov_y = covariance(y_i.T)
         
-        mean_y_w = np.average(y_i[:, 4:7], axis = 0)
+        mean_y_w = np.mean(y_i[:, 4:7], axis = 0)
         w_sub = y_i[:, 4:7] - mean_y_w
-        
+        # print('y_i shape and mean', y_i.shape, mean_y_w)
         w_i_dash = np.hstack([e, w_sub])
+        # ##verified
+        print(w_i_dash.shape)
+        # print('cross check stacking')
+        # print('stack first row ', w_i_dash[0])
+        # print('e and w_sub first row ', e[0], w_sub[0])
         # print('mean check ', mean_y_w, np.average(w_i_dash, axis = 0))
         # y_sub_xk = y_i - mean_y
         # # print('y_sub_xk values ', y_sub_xk)
@@ -320,7 +326,9 @@ def UKF(data, delta_ts, tuneQ = 5):
         # x_i_prev = x_i
         # x_i = update 
         # prev_qk = Quaternion(x_i_prev[0], x_i_prev[1:4], "value")
-        cov_x = (1/w_i_dash.shape[1])*(w_i_dash.T @ w_i_dash)
+        cov_x = (1/w_i_dash.shape[0])*(w_i_dash.T @ w_i_dash)
+        print('div = ',w_i_dash.shape[0])
+        print('w_i_dash ', w_i_dash)
         #### PREIDCTION #####
         
         #### MEASUREMENT MODEL ####
@@ -348,7 +356,7 @@ def UKF(data, delta_ts, tuneQ = 5):
         P = cov_x - kalman @ Pvv @ kalman.T
         # print('covariance cov_x  ', cov_x)
         #### MEASUREMENT MODEL ####
-        plot_angles(steps_logger, 'number_steps_avg.png')
+        plot_angles(steps_logger, 'steps_to_converge_avg.png')
     return roll, pitch, yaw
 
 # data = np.array([1.2,0.9,0,0,0,0])

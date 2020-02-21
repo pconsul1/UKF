@@ -74,6 +74,7 @@ def quat_average(quaternions, current_state_quaternion): #verified
     while(True):
         counter = counter+1
         ei_s = np.zeros((3,len(quaternions)))
+        # ei_s = np.zeros((len(quaternions),3))
         for i in range(len(quaternions)):
          
             ei = quaternions[i].multiply(estimated_mean.inverse())
@@ -100,8 +101,9 @@ def quat_average(quaternions, current_state_quaternion): #verified
         
         if(np.linalg.norm(e)< 0.05 or counter>10):
             break
-    print(counter)
+    print('steps to converge ',counter)
     
+    # return estimated_mean, ei_s, counter
     return estimated_mean, ei_s.T, counter
 
 # def quat_average(quats, quat_mean, thresh = 0.001):
