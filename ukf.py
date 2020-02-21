@@ -329,7 +329,7 @@ def UKF(data, delta_ts, tuneQ = 10):
         x_i_ang = mean_y_w + update[3:6]  #bug fixed
         x_i_prev = np.concatenate([x_i_quat.quaternion, x_i_ang])
         
-        # print('new estimate is ', x_i_prev)
+        print('new estimate is ', x_i_prev)
         
         r, p, y = x_i_quat.quat_to_eular()
         roll.append(r)

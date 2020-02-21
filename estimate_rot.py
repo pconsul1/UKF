@@ -110,14 +110,14 @@ def estimate_rot(data_num=1):
     vals_data.append(trim_imu['vals'])
     ts_data.append(trim_imu['ts'])
     
-    ##comment for submit
-    file1 = os.path.join(os.path.dirname(__file__), "vicon/ViconRot" + str(number) + ".mat")
-    viconRaw = io.loadmat(file1)
+    # ##comment for submit
+    # file1 = os.path.join(os.path.dirname(__file__), "vicon/ViconRot" + str(number) + ".mat")
+    # viconRaw = io.loadmat(file1)
 
-    viconRaw['rots'] = np.rollaxis(viconRaw['rots'],2)
-    viconRaw['ts'] = np.rollaxis(viconRaw['ts'],1)
-    rot_mat.append(viconRaw['rots'])
-    vicon_ts.append(viconRaw['ts'])
+    # viconRaw['rots'] = np.rollaxis(viconRaw['rots'],2)
+    # viconRaw['ts'] = np.rollaxis(viconRaw['ts'],1)
+    # rot_mat.append(viconRaw['rots'])
+    # vicon_ts.append(viconRaw['ts'])
     
     imu_data_new = []
     for data in vals_data:
@@ -215,28 +215,28 @@ def estimate_rot(data_num=1):
     # roll, pitch, yaw = np.array(gyrox)[1:], np.array(gyroy)[1:], np.array(gyroz)[1:]
     # print(roll.shape, yaw.shape, len(roll_val))
     
-    rot = rot_mat[0]
-    eular = np.zeros((rot.shape[0], 3))
-    for i in range(rot.shape[0]):
-        angles = rot_to_euler(rot[i])
-        eular[i] = angles
+    # rot = rot_mat[0]
+    # eular = np.zeros((rot.shape[0], 3))
+    # for i in range(rot.shape[0]):
+    #     angles = rot_to_euler(rot[i])
+    #     eular[i] = angles
     
-    plt.figure()
-    plt.subplot(3,1,1)
-    plt.plot(roll, linewidth = 1.0, color='green')
-    plt.plot(eular[:,0], linewidth = 1.0, color='blue')
+    # plt.figure()
+    # plt.subplot(3,1,1)
+    # plt.plot(roll, linewidth = 1.0, color='green')
+    # plt.plot(eular[:,0], linewidth = 1.0, color='blue')
     
-    plt.subplot(3,1,2) 
-    plt.plot(pitch, linewidth = 1.0, color='green')
-    plt.plot(eular[:,1], linewidth = 1.0, color='blue')
+    # plt.subplot(3,1,2) 
+    # plt.plot(pitch, linewidth = 1.0, color='green')
+    # plt.plot(eular[:,1], linewidth = 1.0, color='blue')
     
-    plt.subplot(3,1,3)
-    plt.plot(yaw, linewidth = 1.0, color='green')
-    plt.plot(eular[:,2], linewidth = 1.0, color='blue')
-    plt.savefig('final_answer_r10q10-ax.png')
+    # plt.subplot(3,1,3)
+    # plt.plot(yaw, linewidth = 1.0, color='green')
+    # plt.plot(eular[:,2], linewidth = 1.0, color='blue')
+    # plt.savefig('final_answer_r10q10-aximu3.png')
     return roll,pitch,yaw
 
-start = time.time()	
-estimate_rot()
-end = time.time()
-print('time to execute: ', end - start)
+# start = time.time()	
+# estimate_rot(3)
+# end = time.time()
+# print('time to execute: ', end - start)
