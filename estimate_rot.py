@@ -134,23 +134,23 @@ def estimate_rot(data_num=1):
         ts = np.concatenate([np.array([0]).reshape(1,1), ts])
         delta_ts.append(ts)
     
-    #plot roll and pitch
-    for num, (data, rot) in enumerate(zip(imu_data_new, rot_mat)):
-        pitch_val = []
-        roll_val = []
-        gyrox, gyroy, gyroz = [0], [0], [0]
-        for i in range(data.shape[0]):
-            acc = data[i][0:3]
-            roll_val.append(roll_calc(acc))
-            pitch_val.append(pitch_calc(acc))
-            n = gyrox[i] + imu_data_new[0][i,3]*delta_ts[0][i]
-            gyrox.append(n)
+    # #plot roll and pitch
+    # for num, (data, rot) in enumerate(zip(imu_data_new, rot_mat)):
+    #     pitch_val = []
+    #     roll_val = []
+    #     gyrox, gyroy, gyroz = [0], [0], [0]
+    #     for i in range(data.shape[0]):
+    #         acc = data[i][0:3]
+    #         roll_val.append(roll_calc(acc))
+    #         pitch_val.append(pitch_calc(acc))
+    #         n = gyrox[i] + imu_data_new[0][i,3]*delta_ts[0][i]
+    #         gyrox.append(n)
             
-            n2 = gyroy[i] + imu_data_new[0][i,4]*delta_ts[0][i]
-            gyroy.append(n2)
+    #         n2 = gyroy[i] + imu_data_new[0][i,4]*delta_ts[0][i]
+    #         gyroy.append(n2)
             
-            n3 = gyroz[i] + imu_data_new[0][i,5]*delta_ts[0][i]
-            gyroz.append(n3)
+    #         n3 = gyroz[i] + imu_data_new[0][i,5]*delta_ts[0][i]
+    #         gyroz.append(n3)
     
     # ##submit
     # for num, (data) in enumerate(imu_data_new):
@@ -208,7 +208,7 @@ def estimate_rot(data_num=1):
         # plt.cla()
     
     ###UKF
-    roll, pitch, yaw =  UKF(data, delta_ts[0])
+    roll, pitch, yaw =  UKF(imu_data_new[0], delta_ts[0])
     roll, pitch, yaw = np.array(roll), np.array(pitch), np.array(yaw)
             
     ##submit
@@ -233,7 +233,7 @@ def estimate_rot(data_num=1):
     plt.subplot(3,1,3)
     plt.plot(yaw, linewidth = 1.0, color='green')
     plt.plot(eular[:,2], linewidth = 1.0, color='blue')
-    plt.savefig('final_answer_100andavg0.001.png')
+    plt.savefig('final_answer_r10q10-ax.png')
     return roll,pitch,yaw
 
 start = time.time()	
