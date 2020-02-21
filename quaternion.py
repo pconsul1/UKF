@@ -78,15 +78,3 @@ class Quaternion:
         y = math.atan2(2*(self.q0*self.q3+self.q1*self.q2), \
                   1 - 2*(self.q2**2 + self.q3**2))
         return r,p,y
-    # def average(qlist):
-    
-# q1 = Quaternion(3, [1,-2,1], "value")
-# q2 = Quaternion(2, [-1,2,3], "value")
-# # print(q1.quaternion, q2.quaternion)
-# # print(q1.add(q2))
-# print(q1.conjugate())
-# print(q1.multiply(q2).quaternion)
-# print(q1.norm())
-# q3 = q1.inverse()
-# print(q1.multiply(q3).norm())
-# print(q1.q0*q2.q0)
