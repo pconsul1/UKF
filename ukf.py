@@ -27,7 +27,7 @@ def sigma_pts(P, Q):
     ###PSD fix
     eigs = np.linalg.eigvals(p_plus_q)
     if not(np.all(eigs) > 0):
-        print('negative eigen values in covariance matrix ', np.min(eigs), eigs)
+        # print('negative eigen values in covariance matrix ', np.min(eigs), eigs)
         p_plus_q = p_plus_q - np.min(eigs)*np.identity(6)
         p_plus_q/=p_plus_q[1,1]
         
@@ -98,7 +98,7 @@ def process_model(w_i, prev_est_quat, x_i_prev, delta_ts):
         x_i_quat = prev_est_quat.multiply(w_i_quat)
         x_i_w = w_i[i][3:6] + x_i_prev[4:7]
         
-        print('y %d w part  \n'%i, x_i_w)
+        # print('y %d w part  \n'%i, x_i_w)
         x_i_w_norm = np.linalg.norm(x_i_w)
         angle = x_i_w_norm * delta_ts
         axis = x_i_w/x_i_w_norm
@@ -163,10 +163,11 @@ def measurement_model(y_i, w_i_dash, delta_t, data, tuneR = 4):
     # R = np.ones((6,6))*tuneR
     R = np.identity(6)*tuneR
     # noise_rot = np.random.rand(3)/10
-    noise_rot = np.array([0,0,0]).reshape(1,3)
+    # noise_rot = np.array([0,0,0]).reshape(1,3)
     
     for i in range(y_i.shape[0]):
-        gyro = measure_gyro(y_i[i][4:7], noise_rot)
+        # gyro = measure_gyro(y_i[i][4:7], noise_rot)
+        gyro = y_i[i][4:7]
         z_gyro[i] = gyro
         
         prev_q_wt = Quaternion(y_i[i][0], y_i[i][1:4], "value")
@@ -292,7 +293,7 @@ def UKF(data, delta_ts, init_pts = 10, tuneQ = 10):
         w_sub = y_i[:, 4:7] - mean_y_w
         
         w_i_dash = np.hstack([e, w_sub])
-        print('mean check ', mean_y_w, np.average(w_i_dash, axis = 0))
+        # print('mean check ', mean_y_w, np.average(w_i_dash, axis = 0))
         # y_sub_xk = y_i - mean_y
         # # print('y_sub_xk values ', y_sub_xk)
         # w_i_dash = transform_7d_to_6d(y_sub_xk)

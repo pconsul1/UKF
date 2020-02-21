@@ -60,7 +60,7 @@ def quat_average(quats, quat_mean, thresh = 0.001):
     e = np.zeros((num, 3))
     # print('number of quaternions ', num)
     # print(err_agg, thresh)
-    while(err_agg > thresh or steps < 100):
+    while(err_agg > thresh or steps < 10):
         e = np.zeros((num, 3))
         for i in range(num):
             e_i = quats[i].multiply(quat_inverse)

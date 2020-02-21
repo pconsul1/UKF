@@ -5,13 +5,14 @@
 #roll pitch and yaw using an extended kalman filter
 
 from scipy import io
-from scipy import integrate
+# from scipy import integrate
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from scipy.spatial.transform import Rotation as R
+# from scipy.spatial.transform import Rotation as R
 from ukf import UKF
+import time
 
 def plot_time_delta_imu(list_name, max_range = 100):
     delta_t_imu = []
@@ -56,10 +57,10 @@ def rot_to_euler(rot_mat):
         z = 0
     return np.array([x, y, z])
 
-def scipy_rot_eular(rot_mat):
-    r = R.from_matrix(rot_mat)
-    e = r.as_euler('xyz')
-    return e
+# def scipy_rot_eular(rot_mat):
+#     r = R.from_matrix(rot_mat)
+#     e = r.as_euler('xyz')
+#     return e
  
 # https://theccontinuum.com/2012/09/24/arduino-imu-pitch-roll-from-accelerometer/
 def pitch_calc(acc):
@@ -123,30 +124,30 @@ def estimate_rot(data_num=1):
     
     print(imu_data_new[0][:100, :3]) 
     delta_ts = []
-    for i, time in enumerate(ts_data):
-        ts = np.diff(time, axis = 0)
+    for i, timer in enumerate(ts_data):
+        ts = np.diff(timer, axis = 0)
         ts = np.concatenate([np.array([0]).reshape(1,1), ts])
         delta_ts.append(ts)
     
-    #plot roll and pitch
-    for num, (data, rot) in enumerate(zip(imu_data_new, rot_mat)):
-        pitch_val = []
-        roll_val = []
-        gyrox, gyroy = [0], [0]
-        for i in range(data.shape[0]):
-            acc = data[i][0:3]
-            roll_val.append(roll_calc(acc))
-            pitch_val.append(pitch_calc(acc))
-            n = gyrox[i] + imu_data_new[0][i,3]*delta_ts[0][i]
-            gyrox.append(n)
+    # #plot roll and pitch
+    # for num, (data, rot) in enumerate(zip(imu_data_new, rot_mat)):
+    #     pitch_val = []
+    #     roll_val = []
+    #     gyrox, gyroy = [0], [0]
+    #     for i in range(data.shape[0]):
+    #         acc = data[i][0:3]
+    #         roll_val.append(roll_calc(acc))
+    #         pitch_val.append(pitch_calc(acc))
+    #         n = gyrox[i] + imu_data_new[0][i,3]*delta_ts[0][i]
+    #         gyrox.append(n)
             
-        # gyrox = integrate.cumtrapz(imu_data_new[0][:,3].reshape(delta_ts[0].shape), delta_ts[0], axis = 0)
-        # gyrox = integrate.cumtrapz(imu_data_new[0][:,4].reshape(delta_ts[0].shape), delta_ts[0], axis = 0)   
+    #     # gyrox = integrate.cumtrapz(imu_data_new[0][:,3].reshape(delta_ts[0].shape), delta_ts[0], axis = 0)
+    #     # gyrox = integrate.cumtrapz(imu_data_new[0][:,4].reshape(delta_ts[0].shape), delta_ts[0], axis = 0)   
         
-        eular = np.zeros((rot.shape[0], 3))
-        for i in range(rot.shape[0]):
-            angles = rot_to_euler(rot[i])
-            eular[i] = angles
+    #     eular = np.zeros((rot.shape[0], 3))
+    #     for i in range(rot.shape[0]):
+    #         angles = rot_to_euler(rot[i])
+    #         eular[i] = angles
          
         # gyrox = np.cumsum(imu_data_new[0][:,3], axis = 0)
         # print(imu_data_new[0][:,3], eular[:-1,0])   
@@ -175,8 +176,11 @@ def estimate_rot(data_num=1):
     plt.subplot(3,1,3)
     plt.plot(yaw, linewidth = 1.0, color='green')
     plt.plot(eular[:,2], linewidth = 1.0, color='blue')
-    plt.savefig('final_answer_re.png')
+    plt.savefig('final_answer_10avg.png')
     # roll, pitch, yaw = [],[],[]
     return roll,pitch,yaw
-	
+
+start = time.time()	
 estimate_rot()
+end = time.time()
+print('time to execute: ', end - start)
