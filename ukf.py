@@ -38,21 +38,25 @@ def sigma_pts(P, Q):
     n = P.shape[0]
     # l = np.linalg.cholesky(p_plus_q + pow(10, -8))
     l = np.linalg.cholesky(p_plus_q)
-    l_t = l
-    norm = np.linalg.norm(l_t)
-    # l_t/=norm
-    # print(l.shape, l_t.shape)
-    w_i = np.zeros((2*n, n))
-    factor = math.sqrt(2*n)
-    # w_i[0] = mean
-    # print('sigma points factor ', factor)
-    for i in range(0,n):
-        ##verified row-col
-        # print('l_t row %d' %i, l_t[i])
-        # print('l col %d'%i, l[:,i])
-        w_i[i] = l_t[i]*factor
-        w_i[i+n] = -l_t[i]*factor
-        # print('cross check neg multiplication ',-l_t[i]*factor)
+    left_vec = l*np.sqrt(2*n)
+    right_vec = -l*np.sqrt(2*n)
+    w_i = np.hstack((left_vec, right_vec)).T
+    # print('w_i shape', w_i.shape)
+    # l_t = l
+    # norm = np.linalg.norm(l_t)
+    # # l_t/=norm
+    # # print(l.shape, l_t.shape)
+    # w_i = np.zeros((2*n, n))
+    # factor = math.sqrt(2*n)
+    # # w_i[0] = mean
+    # # print('sigma points factor ', factor)
+    # for i in range(0,n):
+    #     ##verified row-col
+    #     # print('l_t row %d' %i, l_t[i])
+    #     # print('l col %d'%i, l[:,i])
+    #     w_i[i] = l_t[i]*factor
+    #     w_i[i+n] = -l_t[i]*factor
+    #     # print('cross check neg multiplication ',-l_t[i]*factor)
     # print('mean of sigma points is ', np.mean(w_i, axis = 0))
     return w_i
 
