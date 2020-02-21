@@ -51,7 +51,7 @@ def quat_to_rot(q):
     angular = (2*angle*y[1:4])/sin_angle #unit vector of angular velocity
     return angular
 
-def quat_average(quats, quat_mean, thresh = 0.001):
+def quat_average(quats, quat_mean, thresh = 0.01):
     # quat_mean = Quaternion(0, [1,0,0], "value")
     quat_inverse = quat_mean.inverse()
     err_agg = pow(10,4)
@@ -60,7 +60,7 @@ def quat_average(quats, quat_mean, thresh = 0.001):
     e = np.zeros((num, 3))
     # print('number of quaternions ', num)
     # print(err_agg, thresh)
-    while(err_agg > thresh or steps < 10):
+    while(err_agg > thresh or steps < 100):
         e = np.zeros((num, 3))
         for i in range(num):
             e_i = quats[i].multiply(quat_inverse)
@@ -75,4 +75,4 @@ def quat_average(quats, quat_mean, thresh = 0.001):
         steps += 1
         # print(err_agg, quat_mean.quaternion)
     quat_mean = quat_mean.inverse()
-    return quat_mean, e
+    return quat_mean, e, steps

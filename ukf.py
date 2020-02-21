@@ -6,14 +6,17 @@ Created on Fri Feb 14 14:48:36 2020
 @author: poojaconsul
 """
 import math
-import tensorflow as tf
 import numpy as np
 from  quaternion import Quaternion
 from quatop import rot_to_quat, quat_to_rot, quat_average
 #accelerometer values ->quternions
 #rotation values remain same
 
-
+def plot_angles(ls, fname):
+    plt.plot(ls, linewidth = 1.0)
+    plt.savefig(fname)
+    plt.cla()
+    
 #verified
 def init_covar():
     mat = np.identity(6)*0.01
@@ -251,6 +254,7 @@ def make_quat_list(y):
     return quats
        
 def UKF(data, delta_ts, init_pts = 10, tuneQ = 10):
+    steps_logger = []
     roll, pitch, yaw = [], [], []
     P = init_covar()
     q_pts = np.ones((P.shape[0], P.shape[1]))*tuneQ
@@ -286,7 +290,8 @@ def UKF(data, delta_ts, init_pts = 10, tuneQ = 10):
         # print('value of y_i ', y_i)
         # mean_y = np.avergae(y_i, axis = 0)
         y_i_quats = make_quat_list(y_i)
-        mean_y_quat, e = quat_average(y_i_quats, Quaternion(x_i_prev[0], x_i_prev[1:4], "value"))
+        mean_y_quat, e, steps = quat_average(y_i_quats, Quaternion(x_i_prev[0], x_i_prev[1:4], "value"))
+        steps_logger.append(steps)
         # cov_y = covariance(y_i.T)
         
         mean_y_w = np.average(y_i[:, 4:7], axis = 0)
@@ -331,6 +336,7 @@ def UKF(data, delta_ts, init_pts = 10, tuneQ = 10):
         P = cov_x - kalman @ Pvv @ kalman.T
         # print('covariance cov_x  ', cov_x)
         #### MEASUREMENT MODEL ####
+        plot_angles(steps_logger, 'number_steps_avg.png')
     return roll, pitch, yaw
 
 # data = np.array([1.2,0.9,0,0,0,0])
