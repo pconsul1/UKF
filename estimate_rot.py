@@ -84,6 +84,7 @@ def clean_data_imu(readings):
     # gyro_scale_factor = (3300)/(1023*390)
     bias_imu = np.array([[511, 501, 500]])
     bias_gyro = np.array([373.7, 375.8, 369.8])
+    # bias_gyro = np.array([373, 375, 370])
     print('Imu bias - ', bias_imu)
     print('Gyro Bias - ', bias_gyro)
     data[:, 0:3] = (data[:, 0:3] - bias_imu) * imu_scale_factor
@@ -109,6 +110,7 @@ def estimate_rot(data_num=1):
     vals_data.append(trim_imu['vals'])
     ts_data.append(trim_imu['ts'])
     
+    ##comment for submit
     file1 = os.path.join(os.path.dirname(__file__), "vicon/ViconRot" + str(number) + ".mat")
     viconRaw = io.loadmat(file1)
 
@@ -123,8 +125,8 @@ def estimate_rot(data_num=1):
         imu_data_new.append(cleaned_data)
     
     # print(imu_data_new[0][:20, :3])
-    imu_data_new[0][:,0] = -imu_data_new[0][:,0]
-    imu_data_new[0][:,1] = -imu_data_new[0][:,1]
+    # imu_data_new[0][:,0] = -imu_data_new[0][:,0]
+    # imu_data_new[0][:,1] = -imu_data_new[0][:,1]
     # print(imu_data_new[0][:20, :3])
     delta_ts = []
     for i, timer in enumerate(ts_data):
@@ -132,11 +134,29 @@ def estimate_rot(data_num=1):
         ts = np.concatenate([np.array([0]).reshape(1,1), ts])
         delta_ts.append(ts)
     
-    # #plot roll and pitch
-    # for num, (data, rot) in enumerate(zip(imu_data_new, rot_mat)):
+    #plot roll and pitch
+    for num, (data, rot) in enumerate(zip(imu_data_new, rot_mat)):
+        pitch_val = []
+        roll_val = []
+        gyrox, gyroy, gyroz = [0], [0], [0]
+        for i in range(data.shape[0]):
+            acc = data[i][0:3]
+            roll_val.append(roll_calc(acc))
+            pitch_val.append(pitch_calc(acc))
+            n = gyrox[i] + imu_data_new[0][i,3]*delta_ts[0][i]
+            gyrox.append(n)
+            
+            n2 = gyroy[i] + imu_data_new[0][i,4]*delta_ts[0][i]
+            gyroy.append(n2)
+            
+            n3 = gyroz[i] + imu_data_new[0][i,5]*delta_ts[0][i]
+            gyroz.append(n3)
+    
+    # ##submit
+    # for num, (data) in enumerate(imu_data_new):
     #     pitch_val = []
     #     roll_val = []
-    #     gyrox, gyroy = [0], [0]
+    #     gyrox, gyroy, gyroz = [0], [0], [0]
     #     for i in range(data.shape[0]):
     #         acc = data[i][0:3]
     #         roll_val.append(roll_calc(acc))
@@ -144,24 +164,56 @@ def estimate_rot(data_num=1):
     #         n = gyrox[i] + imu_data_new[0][i,3]*delta_ts[0][i]
     #         gyrox.append(n)
             
+    #         n2 = gyroy[i] + imu_data_new[0][i,4]*delta_ts[0][i]
+    #         gyroy.append(n2)
+            
+    #         n3 = gyroz[i] + imu_data_new[0][i,5]*delta_ts[0][i]
+    #         gyroz.append(n3)
+            
     #     # gyrox = integrate.cumtrapz(imu_data_new[0][:,3].reshape(delta_ts[0].shape), delta_ts[0], axis = 0)
     #     # gyrox = integrate.cumtrapz(imu_data_new[0][:,4].reshape(delta_ts[0].shape), delta_ts[0], axis = 0)   
         
-    #     eular = np.zeros((rot.shape[0], 3))
-    #     for i in range(rot.shape[0]):
-    #         angles = rot_to_euler(rot[i])
-    #         eular[i] = angles
+        # eular = np.zeros((rot.shape[0], 3))
+        # for i in range(rot.shape[0]):
+        #     angles = rot_to_euler(rot[i])
+        #     eular[i] = angles
          
-        # gyrox = np.cumsum(imu_data_new[0][:,3], axis = 0)
-        # print(imu_data_new[0][:,3], eular[:-1,0])   
-        # plot_angles_multiple(gyrox, eular[:,0], 'roll_%d_gyro.png'%num)
-        # plot_angles_multiple(imu_data_new[0][:,4], eular[:,1], 'pitch_%d_gyro.png'%num)
-        # plot_angles_multiple(roll_val, eular[:,0], 'roll_%d_acc.png'%num)
-        # plot_angles_multiple(pitch_val, eular[:,1], 'pitch_%d_acc.png'%num)
+        # # gyrox = np.cumsum(imu_data_new[0][:,3], axis = 0)
+        ### plot values from gyro and acc
+        # plt.figure() 
+        # plt.subplot(3,1,1)
+        # plt.plot(gyrox, linewidth = 1.0, color='green')
+        # plt.plot(eular[:,0], linewidth = 1.0, color='blue')
         
+        # plt.subplot(3,1,2) 
+        # plt.plot(gyroy, linewidth = 1.0, color='green')
+        # plt.plot(eular[:,1], linewidth = 1.0, color='blue')
+        
+        # plt.subplot(3,1,3)
+        # plt.plot(gyroz, linewidth = 1.0, color='green')
+        # plt.plot(eular[:,2], linewidth = 1.0, color='blue')
+        # plt.savefig('%d_gyro.png'%data_num)
+        # plt.cla()
+        
+        
+        # plt.figure() 
+        # plt.subplot(2,1,1)
+        # plt.plot(roll_val, linewidth = 1.0, color='blue')  
+        # plt.plot(eular[:,0], linewidth = 1.0, color='red')  
+        
+        # plt.subplot(2,1,2)
+        # plt.plot(pitch_val, linewidth = 1.0, color='blue')  
+        # plt.plot(eular[:,1], linewidth = 1.0, color='red')  
+        # plt.savefig('%d_acc.png'%data_num)
+        # plt.cla()
+    
+    ###UKF
     roll, pitch, yaw =  UKF(data, delta_ts[0])
     roll, pitch, yaw = np.array(roll), np.array(pitch), np.array(yaw)
-    
+            
+    ##submit
+    # roll, pitch, yaw = np.array(gyrox)[1:], np.array(gyroy)[1:], np.array(gyroz)[1:]
+    # print(roll.shape, yaw.shape, len(roll_val))
     
     rot = rot_mat[0]
     eular = np.zeros((rot.shape[0], 3))
@@ -182,7 +234,6 @@ def estimate_rot(data_num=1):
     plt.plot(yaw, linewidth = 1.0, color='green')
     plt.plot(eular[:,2], linewidth = 1.0, color='blue')
     plt.savefig('final_answer_100andavg0.001.png')
-    # roll, pitch, yaw = [],[],[]
     return roll,pitch,yaw
 
 start = time.time()	

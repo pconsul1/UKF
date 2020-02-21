@@ -36,20 +36,24 @@ def sigma_pts(P, Q):
         p_plus_q/=p_plus_q[1,1]
         
     n = P.shape[0]
-    l = np.linalg.cholesky(p_plus_q + pow(10, -8))
+    # l = np.linalg.cholesky(p_plus_q + pow(10, -8))
+    l = np.linalg.cholesky(p_plus_q)
     l_t = l.T
     norm = np.linalg.norm(l_t)
-    l_t/=norm
+    # l_t/=norm
     # print(l.shape, l_t.shape)
     w_i = np.zeros((2*n, n))
     factor = math.sqrt(2*n)
     # w_i[0] = mean
     # print('sigma points factor ', factor)
     for i in range(0,n):
-        # print('l_t %d' %i, l_t[i])
+        ##verified row-col
+        # print('l_t row %d' %i, l_t[i])
+        # print('l col %d'%i, l[:,i])
         w_i[i] = l_t[i]*factor
         w_i[i+n] = -l_t[i]*factor
         # print('cross check neg multiplication ',-l_t[i]*factor)
+    # print('mean of sigma points is ', np.mean(w_i, axis = 0))
     return w_i
 
 
@@ -90,19 +94,25 @@ def covariance(data):
     cov = ((data - mean[:, None]) @ (data - mean[:, None]).T)/(data.shape[1])
     return cov
 
-def process_model(w_i, prev_est_quat, x_i_prev, delta_ts):
+def process_model(w_i, x_i_prev, delta_ts):
     # print('shape of sigma points variable in process model ', sigma_pts.shape)
     # print('sigma point in process_model ', sigma_pts)
     #implementing y_i = A(x_i, 0)
+    w_prev_est = x_i_prev[4:7]
+    quat_prev_est = Quaternion(x_i_prev[0], x_i_prev[1:4], "value")
+    
+    print('w prev est ', w_prev_est)
     y_i = np.zeros((w_i.shape[0], w_i.shape[1]+1))
     for i in range(w_i.shape[0]):
-        # print('w_i %d '%i, w_i[i])
+        print('w_i %d '%i, w_i[i])
         # print('norm of sigmal points - ', np.linalg.norm(w_i[i][0:3]))
         w_i_quat = rot_to_quat(w_i[i][0:3])
-        x_i_quat = prev_est_quat.multiply(w_i_quat)
-        x_i_w = w_i[i][3:6] + x_i_prev[4:7]
         
-        # print('y %d w part  \n'%i, x_i_w)
+        #make x_i point
+        x_i_quat = quat_prev_est.multiply(w_i_quat)
+        x_i_w = w_prev_est + w_i[i][3:6]
+        print('adding angular velocities ', w_prev_est, w_i[i][3:6])
+        print('y %d w part  \n'%i, x_i_w)
         x_i_w_norm = np.linalg.norm(x_i_w)
         angle = x_i_w_norm * delta_ts
         axis = x_i_w/x_i_w_norm
@@ -147,8 +157,8 @@ def measure_acc(prev_q_wt, delta_t):
     acc(Quaternion) : a quaternion for acceleration
 
     """
-    g_quat = Quaternion(0, [0, 0, 9.8], "value")
-    g_quat = g_quat.unit_quaternion()
+    g_quat = Quaternion(0, [0, 0, 1], "value")
+    # g_quat = g_quat.unit_quaternion()
     # print('prev_q_wt ', prev_q_wt.quaternion)
     prev_q_wt_inverse = prev_q_wt.inverse()
     next_q_wt = prev_q_wt_inverse.multiply(g_quat)
@@ -161,13 +171,11 @@ def measure_acc(prev_q_wt, delta_t):
     # print('q_acc_bosy ', q_acc_body.quaternion)
     return q_acc_body
 
-def measurement_model(y_i, w_i_dash, delta_t, data, tuneR = 4):
+def measurement_model(y_i, w_i_dash, delta_t, data, tuneR = 10):
     num = y_i.shape[0]
     z_acc, z_gyro = np.zeros((num, 3)), np.zeros((num, 3))
     # R = np.ones((6,6))*tuneR
     R = np.identity(6)*tuneR
-    # noise_rot = np.random.rand(3)/10
-    # noise_rot = np.array([0,0,0]).reshape(1,3)
     
     for i in range(y_i.shape[0]):
         # gyro = measure_gyro(y_i[i][4:7], noise_rot)
@@ -254,7 +262,7 @@ def make_quat_list(y):
         quats.append(Quaternion(y[i][0], y[i][1:4], "value"))
     return quats
        
-def UKF(data, delta_ts, tuneQ = 10):
+def UKF(data, delta_ts, tuneQ = 5):
     steps_logger = []
     roll, pitch, yaw = [], [], []
     P = init_covar()
@@ -277,17 +285,20 @@ def UKF(data, delta_ts, tuneQ = 10):
     prev_qk = Quaternion(1, [0,0,0]).unit_quaternion()
     x_i_prev = np.concatenate([np.array(prev_qk.quaternion), w_xyz])
     print('x_i_prev ', x_i_prev)
-    # for i in range(1,2):
-    for i in range(1,data.shape[0]):
+    for i in range(1,5):
+    # for i in range(1,data.shape[0]):
         #### PREIDCTION #####
         w_i = sigma_pts(P, Q)
         # print('shape of w_i', w_i.shape)
         ### computing q_delta with x_i_prev
-        gyro_norm = np.linalg.norm(x_i_prev[4:7])
-        gyro_angle = gyro_norm * delta_ts[i]
-        gyro_axis = x_i_prev[4:7]/gyro_norm
-        gyro_quat = Quaternion(gyro_angle, gyro_axis, "angle")
-        y_i = process_model(w_i, gyro_quat, x_i_prev, delta_ts[i])
+        # gyro_norm = np.linalg.norm(x_i_prev[4:7])
+        # gyro_angle = gyro_norm * delta_ts[i]
+        # gyro_axis = x_i_prev[4:7]/gyro_norm
+        # gyro_quat = Quaternion(gyro_angle, gyro_axis, "angle")
+        # print(gyro_quat.quaternion, gyro_quat.unit_quaternion().quaternion) ##verified same
+        # verified 
+        print('input to process model wishp pre est delta',w_i.shape, x_i_prev,  delta_ts[i])
+        y_i = process_model(w_i, x_i_prev, delta_ts[i])
         # print('value of y_i ', y_i)
         # mean_y = np.avergae(y_i, axis = 0)
         y_i_quats = make_quat_list(y_i)
