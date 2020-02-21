@@ -51,28 +51,85 @@ def quat_to_rot(q):
     angular = (2*angle*y[1:4])/sin_angle #unit vector of angular velocity
     return angular
 
-def quat_average(quats, quat_mean, thresh = 0.01):
-    # quat_mean = Quaternion(0, [1,0,0], "value")
-    quat_inverse = quat_mean.inverse()
-    err_agg = pow(10,4)
-    num = len(quats)
-    steps = 0
-    e = np.zeros((num, 3))
-    # print('number of quaternions ', num)
-    # print(err_agg, thresh)
-    while(err_agg > thresh or steps < 100):
-        e = np.zeros((num, 3))
-        for i in range(num):
-            e_i = quats[i].multiply(quat_inverse)
-            # print('quat * mean inverse result ', e_i.quaternion)
-            e[i] = quat_to_rot(np.array(e_i.quaternion))
-            # print('e[i] value ', e[i])
-        e_avg = np.average(e, axis = 0)
-        err_agg = np.linalg.norm(e_avg)
-        e_avg_quat = rot_to_quat(e_avg)
-        quat_mean = e_avg_quat.multiply(quat_mean)
-        quat_inverse = quat_mean.inverse()
-        steps += 1
-        # print(err_agg, quat_mean.quaternion)
-    quat_mean = quat_mean.inverse()
-    return quat_mean, e, steps
+
+def quat_average(quaternions, current_state_quaternion, thresh = 0.001): #verified
+
+    '''
+    0.92707 +   0.02149i +   0.19191j +   0.32132k
+    0.90361 + 0.0025836i +  0.097279j +   0.41716k
+    0.75868 -   0.21289i +   0.53263j +   0.30884k
+    '''
+    '''
+    quaternions = []
+    quaternions.append(Quaternion(0.92707, [0.02149,   0.19191,   0.32132], "qu"))
+    quaternions.append(Quaternion(0.90361, [0.0025836,  0.097279,   0.41716], "qu"))
+    quaternions.append(Quaternion(0.75868, [-0.21289,   0.53263,   0.30884], "qu"))
+    '''
+    #Declare a random unit qauternion
+    #estimated_mean = Quaternion(0.75868, [0.21289,   0.53263,   0.30884], "qu")
+    estimated_mean = current_state_quaternion
+    
+    counter = 0   
+    while(True):
+        counter = counter+1
+        ei_s = np.zeros((len(quaternions), 3))
+        for i in range(len(quaternions)):
+         
+            ei = quaternions[i].multiply(estimated_mean.inverse())
+            # print("ei ",ei.quaternion)
+            # print("ei ", ei.u)
+            ei_rotvec = quat_to_rot(ei.quaternion)
+            ei_s[i,:] = ei_rotvec[:]
+            
+        e = np.mean(ei_s,axis=1)
+        
+        # print("e avg", e)
+        
+        e_quaternion = rot_to_quat([e[0], e[1], e[2]])
+        
+        # print('e avg quaternion ',e_quaternion.quaternion)
+        # print(e_quaternion.u)
+        
+        estimated_mean = e_quaternion.multiply(estimated_mean)  
+        
+        # print('estimated quat mean ',estimated_mean.quaternion)
+        # print(estimated_mean, ei_s.shape)
+        
+        
+        if(np.sqrt(np.sum(np.square(e)))< thresh or counter>10):
+            break
+    print(counter)
+    
+    return (estimated_mean, ei_s, counter)
+
+# def quat_average(quats, quat_mean, thresh = 0.001):
+#     # quat_mean = Quaternion(0, [1,0,0], "value")
+#     quat_inverse = quat_mean.inverse()
+#     err_agg = pow(10,4)
+#     num = len(quats)
+#     steps = 0
+#     e = np.zeros((num, 3))
+#     # print('number of quaternions ', num)
+#     # print(err_agg, thresh)
+#     while(err_agg > thresh and steps < 100):
+#         e = np.zeros((num, 3))
+#         print('step number ', steps)
+#         for i in range(num):
+#             e_i = quats[i].multiply(quat_inverse)
+#             # print('quat * mean inverse result ', e_i.quaternion)
+#             e[i] = quat_to_rot(np.array(e_i.quaternion))
+#             print('e[%d] value '%i, e[i])
+#         e_avg = np.mean(e, axis = 0)
+#         err_agg = np.linalg.norm(e_avg)
+#         e_avg_quat = rot_to_quat(e_avg)
+#         quat_mean = e_avg_quat.multiply(quat_mean)
+#         quat_inverse = quat_mean.inverse()
+#         steps += 1
+#         print('e avg', e_avg)
+#         print('e avg quat ', e_avg_quat.quaternion)
+#         print('quat mean at step %d'%i, quat_mean)
+#         # print('err_agg at step %d'%steps, err_agg)
+#         # print(err_agg, quat_mean.quaternion)
+#     # print('steps taken to converge ', steps)
+#     quat_mean = quat_mean.inverse()
+#     return quat_mean, e, steps

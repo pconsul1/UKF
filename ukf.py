@@ -8,6 +8,7 @@ Created on Fri Feb 14 14:48:36 2020
 import math
 import numpy as np
 from  quaternion import Quaternion
+import matplotlib.pyplot as plt
 from quatop import rot_to_quat, quat_to_rot, quat_average
 #accelerometer values ->quternions
 #rotation values remain same
@@ -253,7 +254,7 @@ def make_quat_list(y):
         quats.append(Quaternion(y[i][0], y[i][1:4], "value"))
     return quats
        
-def UKF(data, delta_ts, init_pts = 10, tuneQ = 10):
+def UKF(data, delta_ts, tuneQ = 10):
     steps_logger = []
     roll, pitch, yaw = [], [], []
     P = init_covar()
@@ -276,7 +277,7 @@ def UKF(data, delta_ts, init_pts = 10, tuneQ = 10):
     prev_qk = Quaternion(1, [0,0,0]).unit_quaternion()
     x_i_prev = np.concatenate([np.array(prev_qk.quaternion), w_xyz])
     print('x_i_prev ', x_i_prev)
-    # for i in range(1,2000):
+    # for i in range(1,2):
     for i in range(1,data.shape[0]):
         #### PREIDCTION #####
         w_i = sigma_pts(P, Q)

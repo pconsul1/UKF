@@ -12,7 +12,7 @@ import numpy as np
 import math
 # from scipy.spatial.transform import Rotation as R
 from ukf import UKF
-# import time
+import time
 
 def plot_time_delta_imu(list_name, max_range = 100):
     delta_t_imu = []
@@ -109,19 +109,23 @@ def estimate_rot(data_num=1):
     vals_data.append(trim_imu['vals'])
     ts_data.append(trim_imu['ts'])
     
-    # file1 = os.path.join(os.path.dirname(__file__), "vicon/ViconRot" + str(number) + ".mat")
-    # viconRaw = io.loadmat(file1)
+    file1 = os.path.join(os.path.dirname(__file__), "vicon/ViconRot" + str(number) + ".mat")
+    viconRaw = io.loadmat(file1)
 
-    # viconRaw['rots'] = np.rollaxis(viconRaw['rots'],2)
-    # viconRaw['ts'] = np.rollaxis(viconRaw['ts'],1)
-    # rot_mat.append(viconRaw['rots'])
-    # vicon_ts.append(viconRaw['ts'])
+    viconRaw['rots'] = np.rollaxis(viconRaw['rots'],2)
+    viconRaw['ts'] = np.rollaxis(viconRaw['ts'],1)
+    rot_mat.append(viconRaw['rots'])
+    vicon_ts.append(viconRaw['ts'])
     
     imu_data_new = []
     for data in vals_data:
         cleaned_data = clean_data_imu(data)
         imu_data_new.append(cleaned_data)
     
+    # print(imu_data_new[0][:20, :3])
+    imu_data_new[0][:,0] = -imu_data_new[0][:,0]
+    imu_data_new[0][:,1] = -imu_data_new[0][:,1]
+    # print(imu_data_new[0][:20, :3])
     delta_ts = []
     for i, timer in enumerate(ts_data):
         ts = np.diff(timer, axis = 0)
@@ -159,28 +163,29 @@ def estimate_rot(data_num=1):
     roll, pitch, yaw = np.array(roll), np.array(pitch), np.array(yaw)
     
     
-    # rot = rot_mat[0]
-    # eular = np.zeros((rot.shape[0], 3))
-    # for i in range(rot.shape[0]):
-    #     angles = rot_to_euler(rot[i])
-    #     eular[i] = angles
+    rot = rot_mat[0]
+    eular = np.zeros((rot.shape[0], 3))
+    for i in range(rot.shape[0]):
+        angles = rot_to_euler(rot[i])
+        eular[i] = angles
     
-    # plt.figure()
-    # plt.subplot(3,1,1)
-    # plt.plot(roll, linewidth = 1.0, color='green')
-    # plt.plot(eular[:,0], linewidth = 1.0, color='blue')
+    plt.figure()
+    plt.subplot(3,1,1)
+    plt.plot(roll, linewidth = 1.0, color='green')
+    plt.plot(eular[:,0], linewidth = 1.0, color='blue')
     
-    # plt.subplot(3,1,2) 
-    # plt.plot(pitch, linewidth = 1.0, color='green')
-    # plt.plot(eular[:,1], linewidth = 1.0, color='blue')
+    plt.subplot(3,1,2) 
+    plt.plot(pitch, linewidth = 1.0, color='green')
+    plt.plot(eular[:,1], linewidth = 1.0, color='blue')
     
-    # plt.subplot(3,1,3)
-    # plt.plot(yaw, linewidth = 1.0, color='green')
-    # plt.plot(eular[:,2], linewidth = 1.0, color='blue')
-    # plt.savefig('final_answer_100avg0.01.png')
+    plt.subplot(3,1,3)
+    plt.plot(yaw, linewidth = 1.0, color='green')
+    plt.plot(eular[:,2], linewidth = 1.0, color='blue')
+    plt.savefig('final_answer_100andavg0.001.png')
+    # roll, pitch, yaw = [],[],[]
     return roll,pitch,yaw
 
-# start = time.time()	
-# estimate_rot()
-# end = time.time()
-# print('time to execute: ', end - start)
+start = time.time()	
+estimate_rot()
+end = time.time()
+print('time to execute: ', end - start)
