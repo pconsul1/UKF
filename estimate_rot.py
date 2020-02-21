@@ -78,15 +78,15 @@ def clean_data_imu(readings):
     data = readings
     data = data.astype(float)
     #sensitivty for imu from data sheet 330
-    imu_scale_factor = 3300/(34.7*1023)
+    imu_scale_factor = 3300/(34.5*1023)
     #sensitivity non amplified
     gyro_scale_factor = (3300*math.pi)/(1023*180*3.7)
     # gyro_scale_factor = (3300)/(1023*390)
     bias_imu = np.array([[511, 501, 500]])
     bias_gyro = np.array([373.7, 375.8, 369.8])
     # bias_gyro = np.array([373, 375, 370])
-    print('Imu bias - ', bias_imu)
-    print('Gyro Bias - ', bias_gyro)
+    # print('Imu bias - ', bias_imu)
+    # print('Gyro Bias - ', bias_gyro)
     data[:, 0:3] = (data[:, 0:3] - bias_imu) * imu_scale_factor
     data[:, 3:6] = (data[:, 3:6] - bias_gyro) * gyro_scale_factor
     return data
@@ -125,9 +125,9 @@ def estimate_rot(data_num=1):
         imu_data_new.append(cleaned_data)
     
     # print(imu_data_new[0][:20, :3])
-    # imu_data_new[0][:,0] = -imu_data_new[0][:,0]
-    # imu_data_new[0][:,1] = -imu_data_new[0][:,1]
-    print(imu_data_new[0][:20, 3:6])
+    imu_data_new[0][:,0] = -imu_data_new[0][:,0]
+    imu_data_new[0][:,1] = -imu_data_new[0][:,1]
+    # print(imu_data_new[0][:20, :3])
     delta_ts = []
     for i, timer in enumerate(ts_data):
         ts = np.diff(timer, axis = 0)

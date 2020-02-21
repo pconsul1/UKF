@@ -38,7 +38,7 @@ def sigma_pts(P, Q):
     n = P.shape[0]
     # l = np.linalg.cholesky(p_plus_q + pow(10, -8))
     l = np.linalg.cholesky(p_plus_q)
-    l_t = l.T
+    l_t = l
     norm = np.linalg.norm(l_t)
     # l_t/=norm
     # print(l.shape, l_t.shape)
@@ -112,7 +112,7 @@ def process_model(w_i, x_i_prev, delta_ts):
         x_i_quat = quat_prev_est.multiply(w_i_quat)
         x_i_w = w_prev_est + w_i[i][3:6]
         # print('adding angular velocities ', w_prev_est, w_i[i][3:6])
-        print('y %d w part  \n'%i, x_i_w)
+        # print('y %d w part  \n'%i, x_i_w)
         x_i_w_norm = np.linalg.norm(x_i_w)
         angle = x_i_w_norm * delta_ts
         axis = x_i_w/x_i_w_norm
@@ -157,10 +157,11 @@ def measure_acc(prev_q_wt, delta_t):
     acc(Quaternion) : a quaternion for acceleration
 
     """
-    g_quat = Quaternion(0, [0, 0, 1], "value")
+    g_quat = Quaternion(0, [0, 0, 9.8], "value")
     # g_quat = g_quat.unit_quaternion()
-    # print('prev_q_wt ', prev_q_wt.quaternion)
+    
     prev_q_wt_inverse = prev_q_wt.inverse()
+    # print('prev_q_wt ', prev_q_wt_inverse.quaternion)
     next_q_wt = prev_q_wt_inverse.multiply(g_quat)
     # print('next_q_wt ', next_q_wt.quaternion)
     # temp_quat = next_q_wt.unit_quaternion()
@@ -168,43 +169,45 @@ def measure_acc(prev_q_wt, delta_t):
     
     # print('inverse quat ', next_q_wt_inverse.quaternion)
     q_acc_body = next_q_wt.multiply(prev_q_wt)
-    # print('q_acc_bosy ', q_acc_body.quaternion)
+    # print('quat inverse check ', prev_q_wt_inverse.multiply(prev_q_wt).quaternion) ##verified
+    print('q_acc_body ', q_acc_body.quaternion[1:4])
     return q_acc_body
 
-def measurement_model(y_i, w_i_dash, delta_t, data, tuneR = 10):
+def measurement_model(y_i, w_i_dash, delta_t, data, tuneR = 50):
     num = y_i.shape[0]
     z_acc, z_gyro = np.zeros((num, 3)), np.zeros((num, 3))
+    z_gyro = y_i[:,4:7]
+    # print('z_gyro shape ',z_gyro.shape,)
+    # print(z_gyro, y_i[:,4:7])
     # R = np.ones((6,6))*tuneR
     R = np.identity(6)*tuneR
-    
-    for i in range(y_i.shape[0]):
-        # gyro = measure_gyro(y_i[i][4:7], noise_rot)
-        gyro = y_i[i][4:7]
-        z_gyro[i] = gyro
-        
+    # print('check input values in measurement model ',y_i.shape, w_i_dash.shape, delta_t, data)
+    for i in range(y_i.shape[0]):        
         prev_q_wt = Quaternion(y_i[i][0], y_i[i][1:4], "value")
         # print('norm of y_%d quaternion '%i, prev_q_wt.norm())
         acc = measure_acc(prev_q_wt, delta_t)
         # print('acceleration after measurement for %d '%i, acc.quaternion)
         # z_acc_quats[i] = acc #stores quaternions
         z_acc[i] = acc.quaternion[1:4] #stores quaternion values
-    
-    #Z = 12*6
+        # print('z acc values check ', z_acc[i]) ##verified
+        
+    #Z = 12*6 z_gyro = 12*3
     Z = np.hstack((z_acc, z_gyro))
-    # print('value of Z', Z)
+    # print('value of Z', Z, Z.shape)
+    # print('acc and gyro first row', z_acc[0], z_gyro[0])
     cov_z = covariance(Z)
+    # print('cov check', np.linalg.norm(np.cov(Z.T) - cov_z)) ##verified with n-1 exact
     mean_z = np.average(Z, axis = 0)
     # print('shape of Z gyro', z_gyro)
     # print('Z mean ', mean_z)
     #innov_gyro (6,)
-    #true value of measurement - mean computed
-    true_acc = data[0:3]
-    true_gyro = data[3:6]
-    true = np.concatenate([true_acc, true_gyro])
-    # print('true value ', true_acc, true_gyro)
-    innov = true - mean_z
-    innov = innov.reshape((innov.shape[0], 1))
-    # print('innovation ', innov)
+
+    # print('compare acc value ')
+    print(data[0:3])
+    print(mean_z[0:3])
+    innov = data - mean_z  
+    innov = innov.reshape((innov.shape[0], 1))  ##shape becomes 6*1
+    print('innovation ', innov.shape, innov)
     #Pvv = (6,6)
     Pvv = cov_z + R
 
@@ -263,6 +266,7 @@ def make_quat_list(y):
     return quats
        
 def UKF(data, delta_ts, tuneQ = 5):
+    # print(data.shape, len(delta_ts))
     steps_logger = []
     roll, pitch, yaw = [], [], []
     P = init_covar()
@@ -280,13 +284,12 @@ def UKF(data, delta_ts, tuneQ = 5):
     angle_w = delta_ts[0] * w_xyz_norm
     axis_w = w_xyz/w_xyz_norm
     prev_qk = Quaternion(angle_w, axis_w, "angle")
-    next_qk = prev_qk
     # print(prev_qk.quaternion)
     ### initializing the state quaternion
     prev_qk = Quaternion(1, [0,0,0]).unit_quaternion()
     x_i_prev = np.concatenate([np.array(prev_qk.quaternion), w_xyz])
     print('x_i_prev ', x_i_prev)
-    for i in range(1,20):
+    for i in range(1,5):
     # for i in range(1,data.shape[0]):
         #### PREIDCTION #####
         w_i = sigma_pts(P, Q)
@@ -298,7 +301,7 @@ def UKF(data, delta_ts, tuneQ = 5):
         # gyro_quat = Quaternion(gyro_angle, gyro_axis, "angle")
         # print(gyro_quat.quaternion, gyro_quat.unit_quaternion().quaternion) ##verified same
         # verified 
-        print('input to process model wishp pre est delta',w_i.shape, x_i_prev,  delta_ts[i])
+        # print('input to process model wishp pre est delta',w_i.shape, x_i_prev,  delta_ts[i])
         y_i = process_model(w_i, x_i_prev, delta_ts[i])
         # print('value of y_i ', y_i)
         # mean_y = np.avergae(y_i, axis = 0)
@@ -312,7 +315,7 @@ def UKF(data, delta_ts, tuneQ = 5):
         # print('y_i shape and mean', y_i.shape, mean_y_w)
         w_i_dash = np.hstack([e, w_sub])
         # ##verified
-        print(w_i_dash.shape)
+        # print(w_i_dash.shape)
         # print('cross check stacking')
         # print('stack first row ', w_i_dash[0])
         # print('e and w_sub first row ', e[0], w_sub[0])
@@ -327,8 +330,8 @@ def UKF(data, delta_ts, tuneQ = 5):
         # x_i = update 
         # prev_qk = Quaternion(x_i_prev[0], x_i_prev[1:4], "value")
         cov_x = (1/w_i_dash.shape[0])*(w_i_dash.T @ w_i_dash)
-        print('div = ',w_i_dash.shape[0])
-        print('w_i_dash ', w_i_dash)
+        # print('div = ',w_i_dash.shape[0])
+        # print('w_i_dash ', w_i_dash)
         #### PREIDCTION #####
         
         #### MEASUREMENT MODEL ####
@@ -340,10 +343,11 @@ def UKF(data, delta_ts, tuneQ = 5):
         #update 6*1
         # mean_y_6d = transform_7d_to_6d(mean_y)
         # print('mean_y   ',mean_y)
-        # print('update[0:3] ',update[0:3])
+        # print('update[0:3] ',update, update[0:3])
         update_7d_quat = rot_to_quat(update[0:3])
-        x_i_quat = mean_y_quat.multiply(update_7d_quat)
-        x_i_ang = mean_y_w + update[0:3]
+        # x_i_quat = mean_y_quat.multiply(update_7d_quat)
+        x_i_quat = update_7d_quat.multiply(mean_y_quat)
+        x_i_ang = mean_y_w + update[3:6]  ###caught error 
         x_i_prev = np.concatenate([x_i_quat.quaternion, x_i_ang])
         
         print('new estimate is ', x_i_prev)

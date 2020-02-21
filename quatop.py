@@ -54,7 +54,7 @@ def quat_to_rot(q):
     return angular
 
 
-def quat_average(quaternions, current_state_quaternion): #verified
+def quat_average(quaternions, current_state_quaternion, thresh = 0.005): #verified
 
     '''
     0.92707 +   0.02149i +   0.19191j +   0.32132k
@@ -99,9 +99,9 @@ def quat_average(quaternions, current_state_quaternion): #verified
         # print('estimate mean \n',estimated_mean.quaternion)
         
         
-        if(np.linalg.norm(e)< 0.05 or counter>10):
+        if(np.linalg.norm(e)< thresh or counter>10):
             break
-    print('steps to converge ',counter)
+    # print('steps to converge ',counter)
     
     # return estimated_mean, ei_s, counter
     return estimated_mean, ei_s.T, counter
