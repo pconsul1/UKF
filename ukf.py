@@ -14,7 +14,6 @@ def rot_to_quat(w):
     w = np.array(w)
     norm = np.linalg.norm(w)
     if(norm == 0):
-        # print('norm is 0 in rot_to_quat function')
         return Quaternion(0, [0,0,0], "value")
         
     axis = w/norm
@@ -36,7 +35,6 @@ def quat_to_rot(q):
     
     if(angle == 0):
         return np.array([0,0,0])
-        # return np.array([y[1],y[2],y[3]])
     
     sin_angle = math.sin(angle)
     angular = (2*angle*y[1:4])/sin_angle #unit vector of angular velocity
@@ -49,42 +47,21 @@ def quat_average(quaternions, current_state_quaternion, thresh = 0.005): #verifi
     while(True):
         counter = counter+1
         ei_s = np.zeros((3,len(quaternions)))
-        # ei_s = np.zeros((len(quaternions),3))
         for i in range(len(quaternions)):
          
             ei = quaternions[i].multiply(estimated_mean.inverse())
-            # print("\n\nei ",ei.quaternion)
             ei_rotvec = quat_to_rot(ei.quaternion)
-            # ei_s[i] = ei_rotvec
             ei_s[:,i] = ei_rotvec
-            # print(ei_s[:,i])
-            # print(ei_rotvec)
             
-        # e = np.mean(ei_s,axis=0)
         e = np.mean(ei_s,axis=1)
-        
-        # print("e ", e)
         
         e_quaternion = rot_to_quat(e)
         
-        # print(e_quaternion.quaternion)
-        
         estimated_mean = e_quaternion.multiply(estimated_mean)  
-        
-        # print('estimate mean \n',estimated_mean.quaternion)
-        
-        
-        if(np.linalg.norm(e)< thresh or counter>10):
-            break
-    # print('steps to converge ',counter)
-    
-    # return estimated_mean, ei_s, counter
-    return estimated_mean, ei_s.T, counter
 
-# def plot_angles(ls, fname):
-#     plt.plot(ls, linewidth = 1.0)
-#     plt.savefig(fname)
-#     plt.cla()
+        if(np.linalg.norm(e)< thresh or counter>5):
+            break
+    return estimated_mean, ei_s.T, counter
 
 #verified
 def sigma_pts(P, Q):
@@ -98,7 +75,6 @@ def sigma_pts(P, Q):
         
     n = P.shape[0]
     l = np.linalg.cholesky(p_plus_q)
-    # l = l/np.linalg.norm(l)
     left_vec = l*np.sqrt(2*n)
     right_vec = -l*np.sqrt(2*n)
     w_i = np.hstack((left_vec, right_vec)).T
@@ -116,7 +92,6 @@ def process_model(w_i, x_i_prev, delta_ts):
     w_prev_est = x_i_prev[4:7]
     quat_prev_est = Quaternion(x_i_prev[0], x_i_prev[1:4], "value")
     
-    # print('w prev est ', w_prev_est)
     y_i = np.zeros((w_i.shape[0], w_i.shape[1]+1))
     for i in range(w_i.shape[0]):
         w_i_quat = rot_to_quat(w_i[i][0:3])
@@ -130,26 +105,8 @@ def process_model(w_i, x_i_prev, delta_ts):
         y_i_quat = x_i_quat.multiply(q_delta)
         y_i[i] = np.concatenate([np.array(y_i_quat.quaternion), x_i_w], axis = 0)
     return y_i
-    
-def measure_acc(prev_q_wt, delta_t):
-    """
-    Attributes
-    -------
-    data(array) : a 1*6 array with accelerometer and gyroscope readings in order [ax, ay, az, wz, wx, wy]
-    prev_q_wt(Quaternion) : previous computed quaternion for angular velocity
-    delta_t(int) : time interval for angular rotation
-    Returns
-    -------
-    acc(Quaternion) : a quaternion for acceleration
 
-    """
-    g_quat = Quaternion(0, [0, 0, 9.8], "value")
-    prev_q_wt_inverse = prev_q_wt.inverse()
-    next_q_wt = prev_q_wt_inverse.multiply(g_quat)
-    q_acc_body = next_q_wt.multiply(prev_q_wt)
-    return q_acc_body
-
-def measurement_model(y_i, w_i_dash, delta_t, data, tuneR = 10):
+def measurement_model(y_i, w_i_dash, delta_t, data, tuneR = 100):
     num = y_i.shape[0]
     z_acc, z_gyro = np.zeros((num, 3)), np.zeros((num, 3))
     z_gyro = y_i[:,4:7]
@@ -187,23 +144,6 @@ def measurement_model(y_i, w_i_dash, delta_t, data, tuneR = 10):
     #1*6
     return update.T[0], kalman, Pvv
 
-    
-#verified       
-def transform_7d_to_6d(y):
-    # print('shape of y in transform 7d to 6d', y.shape)
-    #type (n,1)
-    if len(y.shape) == 1:
-        w_i = np.zeros((y.shape[0]-1,))
-        w_i[0:3] = quat_to_rot(y)
-        w_i[3:6] = y[4:7]
-        
-    else:
-        w_i = np.zeros((y.shape[0], y.shape[1]-1))
-        for i in range(y.shape[0]):
-            w_i[i][0:3] = quat_to_rot(y[i])
-            w_i[i][3:6] = y[i][4:7]
-    return w_i
-
 #verified
 def make_quat_list(y):
     quats = []
@@ -211,26 +151,22 @@ def make_quat_list(y):
         quats.append(Quaternion(y[i][0], y[i][1:4], "value"))
     return quats
        
-def UKF(data, delta_ts, tuneQ = 10):
-    # print(data.shape, len(delta_ts))
-    steps_logger = []
-    roll, pitch, yaw = [], [], []
-    P = np.identity(6)*0.01
+def UKF(data, delta_ts, tuneQ = 20, tuneP = 0.001):
+    data_shape = data.shape[0]
+    roll, pitch, yaw = np.zeros(data_shape), np.zeros(data_shape), np.zeros(data_shape)
+    P = np.identity(6)*tuneP
     Q = np.identity(6)*tuneQ
     w_xyz = np.array([0.004, 0.003, 0.003])
     prev_qk = Quaternion(1, [0,0,0]).unit_quaternion()
     x_i_prev = np.concatenate([np.array(prev_qk.quaternion), w_xyz])
     print('x_i_prev ', x_i_prev)
-    # for i in range(1,5):
-    for i in range(1,data.shape[0]):
-        #### PREIDCTION #####
+    for i in range(1,data_shape):
         w_i = sigma_pts(P, Q)
 
         y_i = process_model(w_i, x_i_prev, delta_ts[i])
 
         y_i_quats = make_quat_list(y_i)
         mean_y_quat, e, steps = quat_average(y_i_quats, Quaternion(x_i_prev[0], x_i_prev[1:4], "value"))
-        steps_logger.append(steps)
         
         mean_y_w = np.mean(y_i[:, 4:7], axis = 0)
         w_sub = y_i[:, 4:7] - mean_y_w
@@ -238,9 +174,6 @@ def UKF(data, delta_ts, tuneQ = 10):
 
         cov_x = (1/w_i_dash.shape[0])*(w_i_dash.T @ w_i_dash)
         
-        #### PREIDCTION #####
-        
-        #### MEASUREMENT MODEL ####
         update, kalman, Pvv = measurement_model(y_i, w_i_dash, delta_ts[i], data[i])
 
         update_7d_quat = rot_to_quat(update[0:3])
@@ -248,15 +181,12 @@ def UKF(data, delta_ts, tuneQ = 10):
         x_i_ang = mean_y_w + update[3:6]  #bug fixed
         x_i_prev = np.concatenate([x_i_quat.quaternion, x_i_ang])
         
-        # print('new estimate is ', x_i_prev)
-        
         r, p, y = x_i_quat.quat_to_eular()
-        roll.append(r)
-        pitch.append(p)
-        yaw.append(y)
-        # 6*6, 6*6, 6*6
+        roll[i] = r
+        pitch[i] = p
+        yaw[i] = y
+        # roll.append(r)
+        # pitch.append(p)
+        # yaw.append(y)
         P = cov_x - kalman @ Pvv @ kalman.T
-        #### MEASUREMENT MODEL ####
-        # plot_angles(steps_logger, 'steps_to_converge_avg.png')
     return roll, pitch, yaw
-
